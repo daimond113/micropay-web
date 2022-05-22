@@ -2,7 +2,7 @@ import Header from "../components/Header";
 import { Listbox } from '@headlessui/react'
 import React from "react";
 import clsx from "clsx";
-import { ClipboardCopyIcon, ClipboardCheckIcon, CheckIcon, XIcon, RefreshIcon } from '@heroicons/react/outline'
+import { ClipboardCopyIcon, ClipboardCheckIcon, CheckIcon, XIcon, RefreshIcon, MenuIcon } from '@heroicons/react/outline'
 import { axios as apiAxios, useInviteLink } from "../utils/http";
 import Button, { Link } from "../components/Button";
 import useSWR from "swr";
@@ -32,6 +32,39 @@ const ArrowUp = (props: React.SVGProps<SVGSVGElement>) => <svg xmlns="http://www
     <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
 </svg>
 
+const Drawer = ({ server, setServer, userGuilds, className }: {
+    server: { id: string, name: string, icon: string },
+    setServer: React.Dispatch<React.SetStateAction<{
+        id: string;
+        name: string;
+        icon: string;
+    } | undefined>>
+    userGuilds: { id: string, name: string, icon: string }[]
+    className: string
+}) => <div className={clsx("w-80 bg-[#F6F0FA] p-2 flex-col flex-shrink-0", className)}>
+        <Listbox value={server} onChange={setServer}>
+            <Listbox.Button className="bg-white border border-black w-full rounded-full text-left py-2 px-3 flex mb-2 items-center">
+                {({ open }) =>
+                    server
+                        ? <>
+                            <Icon server={server} />
+                            <span className="w-full whitespace-nowrap text-ellipsis overflow-hidden">
+                                {server.name}
+                            </span>
+                            {open ? <ArrowUp className="w-8 h-8" /> : <ArrowDown className="w-8 h-8" />}
+                        </> : undefined
+                }
+            </Listbox.Button>
+            <Listbox.Options className="bg-white rounded-3xl shadow-md p-2 absolute w-full left-0 right-0 top-14 max-h-80 overflow-auto">
+                {userGuilds?.map(s => <Listbox.Option key={s.id} value={s} className={({ active }) => clsx("w-full h-10 mb-1 p-2 flex items-center rounded-full", active && "bg-light-primary")}>
+                    <Icon server={s} />
+                    <span className="text-ellipsis whitespace-nowrap overflow-hidden w-full">{s.name}</span>
+                </Listbox.Option>)}
+            </Listbox.Options>
+        </Listbox>
+        <DrawerItem isOn={true}>Overview</DrawerItem>
+    </div>
+
 export default function Manage() {
     const { data: session } = useSession()
     const { data: userGuilds } = useSWRImmutable(session ? 'https://discord.com/api/v10/users/@me/guilds' : null, DiscordFetcher(session?.access_token))
@@ -43,9 +76,10 @@ export default function Manage() {
     const [copied, setIsCopied] = React.useState(false)
     const [updated, setIsUpdated] = React.useState<'not' | 'success' | 'fail'>('not')
     const invite = useInviteLink()
+    const [isDrawerOpen, setDrawerIsOpen] = React.useState(true)
 
     React.useEffect(() => {
-        if (userGuilds && userGuilds?.[0]) setServer(userGuilds?.[0])
+        if (userGuilds?.[0]) setServer(userGuilds?.[0])
     }, [userGuilds])
 
     return <div className="flex flex-col w-full h-screen">
@@ -53,6 +87,10 @@ export default function Manage() {
             <title>Manage | Micro Pay</title>
         </Head>
         <Header className="flex-grow-0" />
+        {isDrawerOpen && <>
+            <Drawer server={server!} setServer={setServer} userGuilds={userGuilds} className="flex z-50 h-screen absolute" />
+            <button className="bg-opacity-60 bg-black lg:bg-transparent w-full h-screen absolute z-40" onClick={() => setDrawerIsOpen(false)} />
+        </>}
         <div className="flex-grow flex">
             {session ? !server
                 ? <div className="flex w-full h-full justify-center items-center flex-col">
@@ -60,30 +98,11 @@ export default function Manage() {
                     <p className="text-lg">Loading</p>
                 </div>
                 : <>
-                    <div className="w-80 bg-[#F6F0FA] p-2 relative flex flex-col flex-shrink-0">
-                        <Listbox value={server} onChange={setServer}>
-                            <Listbox.Button className="bg-white border border-black w-full rounded-full text-left py-2 px-3 flex mb-2 items-center">
-                                {({ open }) =>
-                                    server
-                                        ? <>
-                                            <Icon server={server} />
-                                            <span className="w-full whitespace-nowrap text-ellipsis overflow-hidden">
-                                                {server.name}
-                                            </span>
-                                            {open ? <ArrowUp className="w-8 h-8" /> : <ArrowDown className="w-8 h-8" />}
-                                        </> : undefined
-                                }
-                            </Listbox.Button>
-                            <Listbox.Options className="bg-white rounded-3xl shadow-md p-2 absolute w-full left-0 right-0 top-14">
-                                {(userGuilds as { id: string, name: string, icon: string }[])?.map(s => <Listbox.Option key={s.id} value={s} className={({ active }) => clsx("w-full h-10 mb-1 p-2 flex items-center rounded-full", active && "bg-light-primary")}>
-                                    <Icon server={s} />
-                                    <span className="text-ellipsis whitespace-nowrap overflow-hidden w-full">{s.name}</span>
-                                </Listbox.Option>)}
-                            </Listbox.Options>
-                        </Listbox>
-                        <DrawerItem isOn={true}>Overview</DrawerItem>
-                    </div>
+                    <Drawer server={server} setServer={setServer} userGuilds={userGuilds} className="hidden lg:flex relative" />
                     <div className="p-5 md:p-20 w-full relative">
+                        {!isDrawerOpen && <button className="w-8 h-8 absolute block lg:hidden right-5" onClick={() => setDrawerIsOpen(true)}>
+                            <MenuIcon className="stroke-[#504154] h-full w-full" />
+                        </button>}
                         {isIn ?
                             isValidating ? <BaseElement>Loading...</BaseElement> :
                                 <>
@@ -107,15 +126,21 @@ export default function Manage() {
                                             <label className="font-semibold block" htmlFor="api-token">API Token</label>
                                             <span className='text-[#504154]'>The API token for the Micro Pay API connected to this server</span>
                                         </div>
-                                        <input id="api-token" type="password" readOnly value={data?.apiToken} className="ml-auto h-full rounded-full px-3 py-2 border border-[#310546]" />
-                                        <CopyToClipboard text={data?.apiToken} onCopy={() => setIsCopied(true)}>
-                                            <Button className="bg-light-primary ml-2">
-                                                {copied ? <ClipboardCheckIcon className="w-6" /> : <ClipboardCopyIcon className="w-6" />}
+                                        <div className="flex justify-center ml-auto items-center lg:items-start flex-col lg:flex-row">
+                                            <input id="api-token" type="password" readOnly value={data?.apiToken} className="ml-auto mb-2 lg:mb-0 h-full rounded-full px-3 py-2 border border-[#310546]" />
+                                            <CopyToClipboard text={data?.apiToken} onCopy={() => setIsCopied(true)}>
+                                                <Button className="bg-light-primary ml-2">
+                                                    {copied ? <ClipboardCheckIcon className="w-6" /> : <ClipboardCopyIcon className="w-6" />}
+                                                </Button>
+                                            </CopyToClipboard>
+                                            <Button
+                                                className="bg-light-primary ml-2 mt-2 lg:mt-0"
+                                                onClick={() => {
+                                                    axios.post(`/api/token/regenerate/${server.id}`).then((v) => mutate({ ...data, apiToken: v.data.apiToken }))
+                                                }}>
+                                                <RefreshIcon className="w-6" />
                                             </Button>
-                                        </CopyToClipboard>
-                                        <Button className="bg-light-primary ml-2" onClick={() => {
-                                            axios.post(`/api/token/regenerate/${server.id}`).then((v) => mutate({ ...data, apiToken: v.data.apiToken }))
-                                        }}><RefreshIcon className="w-6" /></Button>
+                                        </div>
                                     </BaseElement>
                                     <button className="absolute bottom-0 right-0 mb-5 mr-5 bg-light-secondary p-7 rounded-2xl" onClick={() => {
                                         apiAxios.post('/config', {
