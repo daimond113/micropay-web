@@ -1,3 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.discord-message-ephemeral-icon {
+    display: inline
+}

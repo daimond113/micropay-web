@@ -84,7 +84,7 @@ export default function Manage() {
 
     return <div className="flex flex-col w-full h-screen">
         <Head>
-            <title>Manage | Micro Pay</title>
+            <title>Manage - Micro Pay</title>
         </Head>
         <Header className="flex-grow-0" />
         {isDrawerOpen && <>
