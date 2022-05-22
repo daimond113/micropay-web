@@ -76,7 +76,7 @@ export default function Manage() {
     const [copied, setIsCopied] = React.useState(false)
     const [updated, setIsUpdated] = React.useState<'not' | 'success' | 'fail'>('not')
     const invite = useInviteLink()
-    const [isDrawerOpen, setDrawerIsOpen] = React.useState(true)
+    const [isDrawerOpen, setDrawerIsOpen] = React.useState(false)
 
     React.useEffect(() => {
         if (userGuilds?.[0]) setServer(userGuilds?.[0])
