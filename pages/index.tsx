@@ -10,7 +10,7 @@ import { useInviteLink } from '../utils/http'
 const profiles = {
   mpay: {
     author: 'Micro Pay',
-    avatar: 'https://cdn.discordapp.com/avatars/975372236322144267/2272dcf92dafd9f45275d70d1d0140cc.png?size=4096',
+    avatar: '/mpay.svg',
     bot: true,
     roleColor: "#FFFFFF"
   },
@@ -21,7 +21,7 @@ const profiles = {
   },
   luka: {
     author: "LukaDev",
-    avatar: "https://github.com/lukadev-0.png",
+    avatar: "/luka.svg",
     roleColor: "#FFFFFF"
   }
 }
@@ -49,7 +49,7 @@ const Home: NextPage = () => {
       </Head>
       <Header className='flex-grow-0' />
       <div className='flex flex-col flex-grow ml-20 sm:ml-28 md:ml-40 h-[500vh]'>
-        <div className='relative h-[11.5rem] w-[24rem] sm:w-[28rem] md:w-[36rem] lg:w-[44rem] mt-44'>
+        <div className='relative h-[11.5rem] w-[24rem] sm:w-[28rem] md:w-[36rem] lg:w-[44rem] mt-20 md:mt-44'>
           <svg xmlns="http://www.w3.org/2000/svg" className="w-96 h-56 absolute z-10 -top-24 -left-16" viewBox="0 0 485 128" fill="none">
             <path d="M423.51 70.2443C229.01 155.244 159.51 119.744 85.5101 119.744C0.510078 101.244 -1.84444 65.2793 0.510073 58.7443C25.0101 -9.25568 191.01 21.7443 240.51 8.74431C290.01 -4.25569 618.01 -14.7557 423.51 70.2443Z" fill="#EADCF5" />
           </svg>
