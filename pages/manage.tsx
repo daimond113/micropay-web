@@ -3,18 +3,25 @@ import { Listbox } from '@headlessui/react'
 import React from "react";
 import clsx from "clsx";
 import { ClipboardCopyIcon, ClipboardCheckIcon, CheckIcon, XIcon, RefreshIcon, MenuIcon } from '@heroicons/react/outline'
-import { axios as apiAxios, useInviteLink } from "../utils/http";
+import { axios as apiAxios, useInviteLink, useMicroSWR } from "../utils/http";
 import Button, { Link } from "../components/Button";
-import useSWR from "swr";
 import useSWRImmutable from 'swr/immutable'
 import axios from "axios";
 import CopyToClipboard from "react-copy-to-clipboard";
 import { signIn, useSession } from "next-auth/react";
 import Head from "next/head";
+import Image from "next/image";
 
 const Icon = ({ server }: { server: { id: string, icon: string, name: string } }) => server.icon
-    ? <img src={`https://cdn.discordapp.com/icons/${server.id}/${server.icon}.${server.icon.startsWith('a_') ? 'gif' : 'png'}`} alt={server.name} loading="lazy" className="w-8 h-8 rounded-full inline-block mr-1 flex-shrink-0" />
-    : <div className="w-8 h-8 rounded-full bg-light-secondary mr-1 flex justify-center items-center overflow-hidden flex-shrink-0">{server.name.substring(0, 3)}</div>
+    ? <div className="w-8 h-8 flex-shrink-0 rounded-full inline-block mr-1 relative">
+        <Image
+            src={`https://cdn.discordapp.com/icons/${server.id}/${server.icon}.${server.icon.startsWith('a_') ? 'gif' : 'png'}`}
+            layout="fill"
+            alt={server.name}
+            className="rounded-full"
+        />
+    </div>
+    : <div className="w-8 h-8 rounded-full bg-light-secondary mr-1 flex justify-center items-center overflow-hidden flex-shrink-0">{server.name}</div>
 
 const DrawerItem = ({ children, isOn, onClick }: { children: React.ReactNode, isOn: boolean, onClick?: () => void }) => <button onClick={onClick} className={clsx("text-left rounded-full py-4 px-3 mb-3", isOn ? "bg-[#E3C3FC]" : "bg-[#F6F0FA] active:bg-[#E3C3FC] hover:bg-[#F4E7FF]")}>{children}</button>
 
@@ -29,7 +36,7 @@ const ArrowDown = (props: React.SVGProps<SVGSVGElement>) => <svg xmlns="http://w
 </svg>
 
 const ArrowUp = (props: React.SVGProps<SVGSVGElement>) => <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" {...props}>
-    <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
 </svg>
 
 const Drawer = ({ server, setServer, userGuilds, className }: {
@@ -43,24 +50,26 @@ const Drawer = ({ server, setServer, userGuilds, className }: {
     className: string
 }) => <div className={clsx("w-80 bg-[#F6F0FA] p-2 flex-col flex-shrink-0", className)}>
         <Listbox value={server} onChange={setServer}>
-            <Listbox.Button className="bg-white border border-black w-full rounded-full text-left py-2 px-3 flex mb-2 items-center">
-                {({ open }) =>
-                    server
-                        ? <>
-                            <Icon server={server} />
-                            <span className="w-full whitespace-nowrap text-ellipsis overflow-hidden">
-                                {server.name}
-                            </span>
-                            {open ? <ArrowUp className="w-8 h-8" /> : <ArrowDown className="w-8 h-8" />}
-                        </> : undefined
-                }
-            </Listbox.Button>
-            <Listbox.Options className="bg-white rounded-3xl shadow-md p-2 absolute w-full left-0 right-0 top-14 max-h-80 overflow-auto">
-                {userGuilds?.map(s => <Listbox.Option key={s.id} value={s} className={({ active }) => clsx("w-full h-10 mb-1 p-2 flex items-center rounded-full", active && "bg-light-primary")}>
-                    <Icon server={s} />
-                    <span className="text-ellipsis whitespace-nowrap overflow-hidden w-full">{s.name}</span>
-                </Listbox.Option>)}
-            </Listbox.Options>
+            <div className="relative">
+                <Listbox.Button className="bg-white border border-black w-full rounded-full text-left py-2 px-3 flex mb-2 items-center">
+                    {({ open }) =>
+                        server
+                            ? <>
+                                <Icon server={server} />
+                                <span className="w-full whitespace-nowrap text-ellipsis overflow-hidden">
+                                    {server.name}
+                                </span>
+                                {open ? <ArrowUp className="w-8 h-8" /> : <ArrowDown className="w-8 h-8" />}
+                            </> : undefined
+                    }
+                </Listbox.Button>
+                <Listbox.Options className="bg-white top-[3.4rem] rounded-3xl shadow-md p-2 absolute w-full left-0 right-0 max-h-80 overflow-auto border border-black scrollbar-hide">
+                    {userGuilds?.map(s => <Listbox.Option key={s.id} value={s} className={({ active }) => clsx("w-full h-10 mb-1 p-2 flex items-center rounded-full", active && "bg-light-primary")}>
+                        <Icon server={s} />
+                        <span className="text-ellipsis whitespace-nowrap overflow-hidden w-full">{s.name}</span>
+                    </Listbox.Option>)}
+                </Listbox.Options>
+            </div>
         </Listbox>
         <DrawerItem isOn={true}>Overview</DrawerItem>
     </div>
@@ -71,8 +80,8 @@ export default function Manage() {
     const [server, setServer] = React.useState<{ id: string, name: string, icon: string }>()
     const currencyRef = React.useRef<HTMLInputElement>(null)
     const currencyBeforeRef = React.useRef<HTMLInputElement>(null)
-    const { data: isIn, mutate } = useSWR(server ? `/is-in/${server.id}` : null, APIfetcher)
-    const { data, isValidating } = useSWR(isIn && server ? `/api/config/${server.id}` : null, fetcher)
+    const { data: isIn, mutate } = useMicroSWR(server ? `/is-in/${server.id}` : null, APIfetcher)
+    const { data, isLoading } = useMicroSWR(isIn && server ? `/api/config/${server.id}` : null, fetcher)
     const [copied, setIsCopied] = React.useState(false)
     const [updated, setIsUpdated] = React.useState<'not' | 'success' | 'fail'>('not')
     const invite = useInviteLink()
@@ -100,13 +109,13 @@ export default function Manage() {
                 : <>
                     <Drawer server={server} setServer={setServer} userGuilds={userGuilds} className="hidden lg:flex relative" />
                     <div className="p-5 md:p-20 w-full relative">
-                        {!isDrawerOpen && <button className="w-8 h-8 absolute block lg:hidden right-5" onClick={() => setDrawerIsOpen(true)}>
+                        {!isDrawerOpen && <button className="w-8 h-8 absolute block lg:hidden right-5 top-8" onClick={() => setDrawerIsOpen(true)}>
                             <MenuIcon className="stroke-[#504154] h-full w-full" />
                         </button>}
                         {isIn ?
-                            isValidating ? <BaseElement>Loading...</BaseElement> :
+                            isLoading ? <BaseElement>Loading...</BaseElement> :
                                 <>
-                                    <h1 className="text-5xl font-semibold mb-8">{server?.name ?? 'Loading'}</h1>
+                                    <h1 className="text-5xl font-semibold mb-8 max-w-[90%] break-all">{server?.name ?? 'Loading'}</h1>
                                     <BaseElement className="flex items-center">
                                         <div>
                                             <label className="font-semibold block" htmlFor="currency">Currency</label>

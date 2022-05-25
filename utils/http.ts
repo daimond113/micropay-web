@@ -1,5 +1,6 @@
-import ax from 'axios'
+import ax, { AxiosResponse } from 'axios'
 import React from 'react'
+import useSWR from 'swr'
 
 export const axios = ax.create({
     baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
@@ -18,4 +19,14 @@ export function useInviteLink() {
             })
     }, [])
     return inviteLink ?? ''
+}
+
+export function useMicroSWR(key: string | null, fetcher: (url: string) => any) {
+    const { data, error, mutate } = useSWR(key, fetcher)
+    return {
+        data,
+        error,
+        isLoading: !data && !error,
+        mutate
+    }
 }
